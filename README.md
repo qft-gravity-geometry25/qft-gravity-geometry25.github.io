@@ -5,6 +5,7 @@ Coming soon!
 
 ## Contact Organisers: 
 ### ✉️ [Julian Kupka](mailto:J.Kupka@herts.ac.uk)  
+### ✉️ [Mitchell Woolley](mailto:mitchell.woolley@qmul.ac.uk)
 
 <!--
 **qft-gravity-geometry25/qft-gravity-geometry25** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
