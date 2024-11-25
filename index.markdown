@@ -1,3 +1,10 @@
+---
+# Feel free to add content and custom Front Matter to this file.
+# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
+
+layout: home
+---
+
 SEPnet student-led conference "Quantum Field Theory, Gravity and Geometry" 19 March 2025 at One Park Crescent, London, United Kingdom. 
 
 ## Further information
@@ -12,19 +19,4 @@ Coming soon!
 ### ✉️ [Tancredi Schettini Gherardini](mailto:t.schettinigherardini@qmul.ac.uk)
 ### ✉️ [Mitchell Woolley](mailto:mitchell.woolley@qmul.ac.uk)
 ### ✉️ [Pietro Capuozzo](mailto:P.Capuozzo@soton.ac.uk)
-### ✉️ [Benjamin Suzzoni](mailto:B.Suzzoni@soton.ac.uk)
 
-<!--
-**qft-gravity-geometry25/qft-gravity-geometry25** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
-
-Here are some ideas to get you started:
-
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
