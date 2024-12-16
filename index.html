@@ -7,6 +7,12 @@
 <link rel="stylesheet" href="index.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-title" content="QFT Geometry and Gravity" />
+<link rel="manifest" href="/site.webmanifest" />
 </head>
 <body>
 
@@ -19,7 +25,6 @@
     <a href="#schedule" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Schedule</a>
     <a href="#access" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Access</a>
     <a href="#contact" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Contact</a>
-    <a href="javascript:void(0)" class="w3-padding-large w3-hover-red w3-hide-small w3-right"><i class="fa fa-search"></i></a>
   </div>
 </div>
 
@@ -206,7 +211,7 @@
   <a href="mailto:qft.gravity.geometry2025@gmail.com "><i class="fa fa-envelope" style="width:30px"></i></a>
   <p class="w3-medium">SEPnet student-led conference "Quantum Field Theory, Gravity and Geometry" 19 March 2025 at One Park Crescent, London, United Kingdom.</p>
 </footer>
-
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <script>
 const now = new Date(); //Get current time
 
@@ -287,6 +292,33 @@ window.addEventListener('DOMContentLoaded', equalizeParagraphHeights);
 window.addEventListener('resize', equalizeParagraphHeights);
 
 
+const secretKeys = ['q','f','t'];
+var userInput = [];
+// Listen for keypress events
+window.addEventListener('keydown', (e) => {
+  userInput.push(e.key);
+
+  // Check if the user input matches the secret key sequence
+  if (userInput.slice(-secretKeys.length).join('') === secretKeys.join('')) {
+    console.log('You found the secret!'); // Trigger the animation
+
+    confetti({
+      particleCount: 100,
+      startVelocity: 30,
+      spread: 360,
+      origin: {
+        x: Math.random(),
+        // since they fall down, start a bit higher than random
+        y: Math.random() - 0.2
+      }
+    });
+
+    setTimeout(() => {
+      confetti.reset();
+    }, 10000);
+    userInput = []; // Reset the input after triggering
+  }
+});
 </script>
 
 </body>
