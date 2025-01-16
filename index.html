@@ -209,6 +209,7 @@
   <p class="w3-medium">SEPnet student-led conference "Quantum Field Theory, Gravity and Geometry" 19 March 2025 at One Park Crescent, London, United Kingdom.</p>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script src="scripts/canvas.js"></script>
 <script>
 const now = new Date(); //Get current time
 
@@ -287,35 +288,6 @@ function equalizeParagraphHeights() {
 window.addEventListener('DOMContentLoaded', equalizeParagraphHeights);
 // Run the function on window resize
 window.addEventListener('resize', equalizeParagraphHeights);
-
-
-const secretKeys = ['q','f','t'];
-var userInput = [];
-// Listen for keypress events
-window.addEventListener('keydown', (e) => {
-  userInput.push(e.key);
-
-  // Check if the user input matches the secret key sequence
-  if (userInput.slice(-secretKeys.length).join('') === secretKeys.join('')) {
-    console.log('You found the secret!'); // Trigger the animation
-
-    confetti({
-      particleCount: 100,
-      startVelocity: 30,
-      spread: 360,
-      origin: {
-        x: Math.random(),
-        // since they fall down, start a bit higher than random
-        y: Math.random() - 0.2
-      }
-    });
-
-    setTimeout(() => {
-      confetti.reset();
-    }, 10000);
-    userInput = []; // Reset the input after triggering
-  }
-});
 </script>
 
 </body>
