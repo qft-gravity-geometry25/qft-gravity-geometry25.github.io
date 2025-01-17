@@ -92,19 +92,19 @@ function GRanimate() {
 //---------- Particle Simulation ----------
 const b = 0.001; // constant magnetic field
 const particleInfo = [
-  {type: "e", color: "rgb(0, 142, 250)", radius: 3, charge: -1, hl: 500},
-  {type: "ep", color: "rgb(0, 250, 250)", radius: 3, charge: 1, hl: 500},
-  {type: "nue", color: "rgb(90, 136, 136)", radius: 3, charge: 0, hl: 100000},
-  {type: "mu", color: "rgb(142, 0, 250)", radius: 5, charge: -1, hl: 100000},
-  {type: "mup", color: "rgb(250, 0, 250)", radius: 5, charge: 1, hl: 100000},
-  {type: "numu", color: "rgb(136, 90, 136)", radius: 3, charge: 0, hl: 100000},
-  {type: "tau", color: "rgb(250, 250, 0)", radius: 7, charge: -1, hl: 200},
-  {type: "taup", color: "rgb(250, 142, 0)", radius: 7, charge: 1, hl: 200},
-  {type: "nutau", color: "rgb(136, 136, 90)", radius: 3, charge: 0, hl: 100000},
-  {type: "Z", color: "rgb(140, 140, 0)", radius: 10, charge: 0, hl: 200},
-  {type: "Wp", color: "rgb(30, 140, 0)", radius: 10, charge: 1, hl: 200},
-  {type: "Wm", color: "rgb(140, 30, 0)", radius: 10, charge: -1, hl: 200},
-  {type: "ph", color: "rgb(250, 90, 0)", radius: 3, charge: 0, hl: 100000}
+  {type: "e", color: "rgb(0, 142, 250)", radius: 3, charge: -1, hl: 500, display: "electron"},
+  {type: "ep", color: "rgb(0, 250, 250)", radius: 3, charge: 1, hl: 500, display: "positron"},
+  {type: "nue", color: "rgb(90, 136, 136)", radius: 3, charge: 0, hl: 100000, display: "electron neutrino"},
+  {type: "mu", color: "rgb(142, 0, 250)", radius: 5, charge: -1, hl: 100000, display: "muon"},
+  {type: "mup", color: "rgb(250, 0, 250)", radius: 5, charge: 1, hl: 100000, display: "anti muon"},
+  {type: "numu", color: "rgb(136, 90, 136)", radius: 3, charge: 0, hl: 100000, display: "muon neutrino"},
+  {type: "tau", color: "rgb(250, 250, 0)", radius: 7, charge: -1, hl: 200, display: "tauon"},
+  {type: "taup", color: "rgb(250, 142, 0)", radius: 7, charge: 1, hl: 200, display: "anti tauon"},
+  {type: "nutau", color: "rgb(136, 136, 90)", radius: 3, charge: 0, hl: 100000, display: "tauon neutrino"},
+  {type: "Z", color: "rgb(140, 140, 0)", radius: 10, charge: 0, hl: 200, display: "Z boson"},
+  {type: "Wp", color: "rgb(30, 140, 0)", radius: 10, charge: 1, hl: 200, display: "W plus boson"},
+  {type: "Wm", color: "rgb(140, 30, 0)", radius: 10, charge: -1, hl: 200, display: "W minus boson"},
+  {type: "ph", color: "rgb(250, 90, 0)", radius: 3, charge: 0, hl: 100000, display: "photon"}
 ];
 const decayTable = [
   {type: "e", decay: [["e","ph"],["Wm","nue"]], cumprob: [0.3, 0.4]},
@@ -117,6 +117,22 @@ const decayTable = [
 var particlesAdd = [];
 var particlesRemove = [];
 var particles = [];
+
+// Create the info box that counts particles
+const infoBox = document.createElement("div");
+infoBox.style.position = "fixed";
+infoBox.style.bottom = "10px";
+infoBox.style.right = "10px";
+infoBox.style.backgroundColor = "white";
+infoBox.style.border = "1px solid black";
+infoBox.style.borderRadius = "8px";
+infoBox.style.padding = "10px";
+infoBox.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.2)";
+infoBox.style.fontFamily = "Arial, sans-serif";
+infoBox.style.fontSize = "14px";
+infoBox.style.color = "#333";
+infoBox.style.display = "none";
+document.body.appendChild(infoBox);
 
 function QFTdrawParticles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -188,9 +204,9 @@ function QFTupdatePositions() {
     for (let i = 0; i < particles.length; i++) {
       const pcharge2 = particleInfo[particleInfo.findIndex(item => item.type === particles[i].type)].charge;
       if (pcharge2 != 0) {
-        const dx = (particles[i].x - particle.x);
-        const dy = (particles[i].y - particle.y);
-        const eforce = 0.01 * pcharge2 * pcharge / Math.sqrt(0.1 + dx*dx + dy*dy);
+        const dx = (particle.x - particles[i].x);
+        const dy = (particle.y - particles[i].y);
+        const eforce = 0.001 * pcharge2 * pcharge / Math.sqrt(0.1 + dx*dx + dy*dy);
 
         force.fx += dx * eforce;
         force.fy += dy * eforce;
@@ -215,11 +231,54 @@ function QFTupdatePositions() {
   });
 }
 
+// Function to update the info box
+function updateInfoBox() {
+  // Clear existing content
+  infoBox.innerHTML = "";
+
+  if (particles.length > 0) {
+    infoBox.style.display = "inherit";
+    // Count occurrences of each type
+    const typeCounts = particles.reduce((acc, item) => {
+      acc[item.type] = (acc[item.type] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Add the updated content
+    Object.keys(typeCounts).forEach(type => {
+      const color = particleInfo[particleInfo.findIndex(item => item.type === type)].color;
+      const display = particleInfo[particleInfo.findIndex(item => item.type === type)].display;
+
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.alignItems = "center";
+      row.style.marginBottom = "5px";
+
+      const colorBox = document.createElement("div");
+      colorBox.style.width = "12px";
+      colorBox.style.height = "12px";
+      colorBox.style.backgroundColor = color;
+      colorBox.style.marginRight = "8px";
+      colorBox.style.border = "1px solid #000";
+
+      const text = document.createElement("span");
+      text.textContent = `${display}: ${typeCounts[type]}`;
+
+      row.appendChild(colorBox);
+      row.appendChild(text);
+      infoBox.appendChild(row);
+    });
+  } else {
+    infoBox.style.display = "none";
+  }
+}
+
 // Animation loop
 function QFTanimate() {
   QFTdecay();
   QFTupdatePositions();
   QFTdrawParticles();
+  updateInfoBox();
   requestAnimationFrame(QFTanimate);
 }
 //-----------------------------------------
