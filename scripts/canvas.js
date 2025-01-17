@@ -90,7 +90,8 @@ function GRanimate() {
 //-----------------------------------
 
 //---------- Particle Simulation ----------
-const b = 0.001; // constant magnetic field
+const b = 0.01; // magnetic field strength
+const e = 0.01; // Coulomb force strength
 const particleInfo = [
   {type: "e", color: "rgb(0, 142, 250)", radius: 3, charge: -1, hl: 500, display: "electron"},
   {type: "ep", color: "rgb(0, 250, 250)", radius: 3, charge: 1, hl: 500, display: "positron"},
@@ -104,15 +105,48 @@ const particleInfo = [
   {type: "Z", color: "rgb(140, 140, 0)", radius: 10, charge: 0, hl: 200, display: "Z boson"},
   {type: "Wp", color: "rgb(30, 140, 0)", radius: 10, charge: 1, hl: 200, display: "W plus boson"},
   {type: "Wm", color: "rgb(140, 30, 0)", radius: 10, charge: -1, hl: 200, display: "W minus boson"},
-  {type: "ph", color: "rgb(250, 90, 0)", radius: 3, charge: 0, hl: 100000, display: "photon"}
+  {type: "ph", color: "rgb(250, 90, 0)", radius: 3, charge: 0, hl: 10000, display: "photon"},
+  {type: "H", color: "rgb(30, 30, 30)", radius: 20, charge: 0, hl: 100, display: "Higgs boson"}
+  //{type: "u", color: "rgb(255, 30, 30)", radius: 2, charge: 0.6, hl: 100000, display: "up quark"},
+  //{type: "ub", color: "rgb(0, 225, 225)", radius: 2, charge: -0.6, hl: 100000, display: "anti up quark"},
+  //{type: "d", color: "rgb(30, 255, 30)", radius: 2, charge: -0.3, hl: 100000, display: "down quark"},
+  //{type: "db", color: "rgb(225, 0, 225)", radius: 2, charge: 0.3, hl: 100000, display: "anti down quark"}
 ];
 const decayTable = [
   {type: "e", decay: [["e","ph"],["Wm","nue"]], cumprob: [0.3, 0.4]},
   {type: "ep", decay: [["ep","ph"],["Wp","nue"]], cumprob: [0.3, 0.4]},
+  {type: "mu", decay: [["e","Z"]], cumprob: [0.2]},
+  {type: "mup", decay: [["ep","Z"]], cumprob: [0.2]},
+  {type: "tau", decay: [["mu","Z"],["e","Z"]], cumprob: [0.4, 0.8]},
+  {type: "taup", decay: [["mup","Z"],["ep","Z"]], cumprob: [0.4, 0.8]},
   {type: "Wm", decay: [["e","nue"],["mu","numu"],["tau","nutau"]], cumprob: [0.5, 0.8, 1]},
   {type: "Wp", decay: [["ep","nue"],["mup","numu"],["taup","nutau"]], cumprob: [0.5, 0.8, 1]},
   {type: "Z", decay: [["e","ep"],["mu","mup"],["tau","taup"]], cumprob: [0.4, 0.7, 1]},
-  {type: "ph", decay: [["e","ep"],["mu","mup"],["tau","taup"]], cumprob: [0.2, 0.3, 0.35]}
+  {type: "ph", decay: [["e","ep"],["mu","mup"],["tau","taup"]], cumprob: [0.2, 0.3, 0.35]},
+  {type: "H", decay: [["Wp","Wm"],["Z","Z"],["ph","Z"]], cumprob: [0.3, 0.6, 1]}
+];
+const interactionTable = [
+  {in: ["e","ep"], out: ["ph","Z"], cumprob: [0.8, 1]},
+  {in: ["mu","mup"], out: ["ph","Z"], cumprob: [0.8, 1]},
+  {in: ["tau","taup"], out: ["ph","Z"], cumprob: [0.8, 1]},
+  {in: ["Wp","nue"], out: ["ep"], cumprob: [1]},
+  {in: ["Wm","nue"], out: ["e"], cumprob: [1]},
+  {in: ["Wp","numu"], out: ["mup"], cumprob: [1]},
+  {in: ["Wm","numu"], out: ["mu"], cumprob: [1]},
+  {in: ["Wp","nutau"], out: ["taup"], cumprob: [1]},
+  {in: ["Wm","nutau"], out: ["tau"], cumprob: [1]},
+  {in: ["ph","e"], out: ["e"], cumprob: [1]},
+  {in: ["ph","ep"], out: ["ep"], cumprob: [1]},
+  {in: ["ph","mu"], out: ["mu"], cumprob: [1]},
+  {in: ["ph","mup"], out: ["mup"], cumprob: [1]},
+  {in: ["ph","tau"], out: ["tau"], cumprob: [1]},
+  {in: ["ph","taup"], out: ["taup"], cumprob: [1]},
+  {in: ["ph","Wm"], out: ["Wm"], cumprob: [1]},
+  {in: ["ph","Wp"], out: ["Wp"], cumprob: [1]},
+  {in: ["ph","Z"], out: ["Z"], cumprob: [1]},
+  {in: ["ph","ph"], out: ["H"], cumprob: [1]},
+  {in: ["Wp","Wm"], out: ["H"], cumprob: [1]},
+  {in: ["Z","Z"], out: ["H"], cumprob: [1]}
 ];
 var particlesAdd = [];
 var particlesRemove = [];
@@ -150,11 +184,11 @@ function QFTdrawParticles() {
 function QFTdecay() {
   particles.forEach((particle, pindex) => {
     const phl = particleInfo[particleInfo.findIndex(item => item.type === particle.type)].hl;
-    if (particle.time > phl) {
+    if (particle.time > phl * (1 + Math.random())) {
       const dindex = decayTable.findIndex(item => item.type === particle.type);
       
       if (dindex != -1) {
-        const decay = decayTable[dindex].cumprob.findIndex(prob => Math.random() <= prob);
+        var decay = decayTable[dindex].cumprob.findIndex(prob => Math.random() <= prob);
 
         if (decay != -1) {
           // Append index of particle to remove
@@ -195,29 +229,71 @@ function QFTdecay() {
   particlesAdd = [];
 }
 
+function QFTinteract() {
+  particles.forEach((particle, pindex) => {
+    if (particle.time > 100) {
+      for (let i = 0; i < particles.length && i != pindex; i++) {
+        if (Math.pow(particle.x - particles[i].x, 2) + Math.pow(particle.y - particles[i].y, 2) < 100) {
+          interaction = interactionTable.findIndex(item => (item.in[0] === particle.type && item.in[1] === particles[i].type) || (item.in[1] === particle.type && item.in[0] === particles[i].type));
+          if (interaction != -1) {
+            //Remove the interacting particles
+            particlesRemove.push(pindex, i);
+
+            var out = interactionTable[interaction].cumprob.findIndex(prob => Math.random() <= prob);
+
+            // get average position and com speed
+            const px = (particle.x + particles[i].x)/2;
+            const py = (particle.y + particles[i].y)/2;
+            const vx = (particle.vx + particles[i].vx) * 0.9;
+            const vy = (particle.vy + particles[i].vy) * 0.9;
+
+            // Append to list of particles to add
+            particlesAdd.push({type: interactionTable[interaction].out[out], x: px, y: py, vx: vx, vy: vy, time: 0});
+          }
+        }
+      }
+    }
+  });
+
+  particlesRemove = particlesRemove.sort().reverse();
+
+  particlesRemove.forEach(pindex => {
+    particles = particles.filter((_, i) => i !== pindex);
+  });
+
+  particlesAdd.forEach(particle => {
+    particles.push(particle);
+  });
+
+  particlesRemove = [];
+  particlesAdd = [];
+}
+
 function QFTupdatePositions() {
   particles.forEach(particle => {
     var force = {fx: 0, fy: 0};
     const pcharge = particleInfo[particleInfo.findIndex(item => item.type === particle.type)].charge;
 
-    // Calculate forces from all charged particles
-    for (let i = 0; i < particles.length; i++) {
-      const pcharge2 = particleInfo[particleInfo.findIndex(item => item.type === particles[i].type)].charge;
-      if (pcharge2 != 0) {
-        const dx = (particle.x - particles[i].x);
-        const dy = (particle.y - particles[i].y);
-        const eforce = 0.001 * pcharge2 * pcharge / Math.sqrt(0.1 + dx*dx + dy*dy);
+    if (pcharge != 0) {
+      // Calculate forces from all charged particles
+      for (let i = 0; i < particles.length; i++) {
+        const pcharge2 = particleInfo[particleInfo.findIndex(item => item.type === particles[i].type)].charge;
+        if (pcharge2 != 0) {
+          const dx = (particle.x - particles[i].x);
+          const dy = (particle.y - particles[i].y);
+          const eforce = e * pcharge2 * pcharge / Math.sqrt(0.1 + dx*dx + dy*dy);
 
-        force.fx += dx * eforce;
-        force.fy += dy * eforce;
+          force.fx += dx * eforce;
+          force.fy += dy * eforce;
+        }
       }
-    }
-    // Add force due to constant magnetic field
-    force.fx += particle.vy * b;
-    force.fy += -particle.vx * b;
+      // Add force due to constant magnetic field
+      force.fx += pcharge * particle.vy * b;
+      force.fy += -pcharge * particle.vx * b;
 
-    particle.vx += force.fx;
-    particle.vy += force.fy;
+      particle.vx += force.fx;
+      particle.vy += force.fy;
+    }
     particle.x += particle.vx;
     particle.y += particle.vy;
     particle.time += 1;
@@ -275,6 +351,7 @@ function updateInfoBox() {
 
 // Animation loop
 function QFTanimate() {
+  QFTinteract();
   QFTdecay();
   QFTupdatePositions();
   QFTdrawParticles();
@@ -304,12 +381,17 @@ window.addEventListener('keydown', (e) => {
     animateGR = false;
     planets = [];
 
-    const ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
-    particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: 0.5 * Math.random(), vy: 0.5 * Math.random(), time: 0});
+    var ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
+    particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: Math.random(), vy: Math.random(), time: 0});
 
-    // Start the animation
+    // Start the animation with three random particles
     if (!animateQFT) {
       animateQFT = true;
+      ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
+      particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: 0.5 * Math.random(), vy: 0.5 * Math.random(), time: 0});
+      ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
+      particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: 0.5 * Math.random(), vy: 0.5 * Math.random(), time: 0});
+      ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
       particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: 0.5 * Math.random(), vy: 0.5 * Math.random(), time: 0});
       QFTanimate();
     }
