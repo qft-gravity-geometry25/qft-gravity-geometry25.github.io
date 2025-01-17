@@ -90,26 +90,144 @@ function GRanimate() {
 //-----------------------------------
 
 //---------- Particle Simulation ----------
-var particles = [{ x: 0, y: canvas.height/2, radius: 10, vx: 0, vy: 0, time: 0, color: 'blue' }]
+const b = 0.001; // constant magnetic field
+const particleInfo = [
+  {type: "e", color: "rgb(0, 142, 250)", radius: 3, charge: -1, hl: 500},
+  {type: "ep", color: "rgb(0, 250, 250)", radius: 3, charge: 1, hl: 500},
+  {type: "nue", color: "rgb(90, 136, 136)", radius: 3, charge: 0, hl: 100000},
+  {type: "mu", color: "rgb(142, 0, 250)", radius: 5, charge: -1, hl: 100000},
+  {type: "mup", color: "rgb(250, 0, 250)", radius: 5, charge: 1, hl: 100000},
+  {type: "numu", color: "rgb(136, 90, 136)", radius: 3, charge: 0, hl: 100000},
+  {type: "tau", color: "rgb(250, 250, 0)", radius: 7, charge: -1, hl: 200},
+  {type: "taup", color: "rgb(250, 142, 0)", radius: 7, charge: 1, hl: 200},
+  {type: "nutau", color: "rgb(136, 136, 90)", radius: 3, charge: 0, hl: 100000},
+  {type: "Z", color: "rgb(140, 140, 0)", radius: 10, charge: 0, hl: 200},
+  {type: "Wp", color: "rgb(30, 140, 0)", radius: 10, charge: 1, hl: 200},
+  {type: "Wm", color: "rgb(140, 30, 0)", radius: 10, charge: -1, hl: 200},
+  {type: "ph", color: "rgb(250, 90, 0)", radius: 3, charge: 0, hl: 100000}
+];
+const decayTable = [
+  {type: "e", decay: [["e","ph"],["Wm","nue"]], cumprob: [0.3, 0.4]},
+  {type: "ep", decay: [["ep","ph"],["Wp","nue"]], cumprob: [0.3, 0.4]},
+  {type: "Wm", decay: [["e","nue"],["mu","numu"],["tau","nutau"]], cumprob: [0.5, 0.8, 1]},
+  {type: "Wp", decay: [["ep","nue"],["mup","numu"],["taup","nutau"]], cumprob: [0.5, 0.8, 1]},
+  {type: "Z", decay: [["e","ep"],["mu","mup"],["tau","taup"]], cumprob: [0.4, 0.7, 1]},
+  {type: "ph", decay: [["e","ep"],["mu","mup"],["tau","taup"]], cumprob: [0.2, 0.3, 0.35]}
+];
+var particlesAdd = [];
+var particlesRemove = [];
+var particles = [];
 
 function QFTdrawParticles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   particles.forEach(particle => {
+    const index = particleInfo.findIndex(item => item.type === particle.type);
     ctx.beginPath();
-    ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
-    ctx.fillStyle = particle.color;
+    ctx.arc(particle.x, particle.y, particleInfo[index].radius, 0, Math.PI * 2);
+    ctx.fillStyle = particleInfo[index].color;
     ctx.fill();
     ctx.closePath();
   });
 }
 
+function QFTdecay() {
+  particles.forEach((particle, pindex) => {
+    const phl = particleInfo[particleInfo.findIndex(item => item.type === particle.type)].hl;
+    if (particle.time > phl) {
+      const dindex = decayTable.findIndex(item => item.type === particle.type);
+      
+      if (dindex != -1) {
+        const decay = decayTable[dindex].cumprob.findIndex(prob => Math.random() <= prob);
+
+        if (decay != -1) {
+          // Append index of particle to remove
+          particlesRemove.push(pindex);
+          
+          const px = particle.x;
+          const py = particle.y;
+          const vx = particle.vx;
+          const vy = particle.vy;
+
+          var rvx = Math.random();
+          var rvy = Math.random();
+
+          // Append to list of particles to add
+          decayTable[dindex].decay[decay].forEach(dparticle => {
+            particlesAdd.push({type: dparticle, x: px, y: py, vx: vx + rvx, vy: vy + rvy, time: 0});
+            rvx = -rvx;
+            rvy = -rvy;
+          });
+        }
+      }
+      
+      particle.time = 0;
+    }
+  });
+
+  particlesRemove = particlesRemove.sort().reverse();
+
+  particlesRemove.forEach(pindex => {
+    particles = particles.filter((_, i) => i !== pindex);
+  });
+
+  particlesAdd.forEach(particle => {
+    particles.push(particle);
+  });
+
+  particlesRemove = [];
+  particlesAdd = [];
+}
+
+function QFTupdatePositions() {
+  particles.forEach(particle => {
+    var force = {fx: 0, fy: 0};
+    const pcharge = particleInfo[particleInfo.findIndex(item => item.type === particle.type)].charge;
+
+    // Calculate forces from all charged particles
+    for (let i = 0; i < particles.length; i++) {
+      const pcharge2 = particleInfo[particleInfo.findIndex(item => item.type === particles[i].type)].charge;
+      if (pcharge2 != 0) {
+        const dx = (particles[i].x - particle.x);
+        const dy = (particles[i].y - particle.y);
+        const eforce = 0.01 * pcharge2 * pcharge / Math.sqrt(0.1 + dx*dx + dy*dy);
+
+        force.fx += dx * eforce;
+        force.fy += dy * eforce;
+      }
+    }
+    // Add force due to constant magnetic field
+    force.fx += particle.vy * b;
+    force.fy += -particle.vx * b;
+
+    particle.vx += force.fx;
+    particle.vy += force.fy;
+    particle.x += particle.vx;
+    particle.y += particle.vy;
+    particle.time += 1;
+
+    if (particle.x < 0 || particle.x > canvas.width) {
+      particle.vx = -particle.vx;
+    }
+    if (particle.y < 0 || particle.y > canvas.height) {
+      particle.vy = -particle.vy;
+    }
+  });
+}
+
 // Animation loop
 function QFTanimate() {
+  QFTdecay();
+  QFTupdatePositions();
   QFTdrawParticles();
   requestAnimationFrame(QFTanimate);
 }
 //-----------------------------------------
+
+//---------- Start all animations ----------
+animateGR = false;
+animateQFT = false;
+//------------------------------------------
 
 const secret_1 = ['q','f','t'];
 const secret_2 = ['g','e','o'];
@@ -123,6 +241,46 @@ window.addEventListener('keydown', (e) => {
   // Check if the user input matches the secret key sequence
   if (userInput.slice(-secret_1.length).join('') === secret_1.join('')) {
     console.log('You found a secret!'); // Trigger the animation
+    // Stop the other simulations
+    animateGR = false;
+    planets = [];
+
+    const ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
+    particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: 0.5 * Math.random(), vy: 0.5 * Math.random(), time: 0});
+
+    // Start the animation
+    if (!animateQFT) {
+      animateQFT = true;
+      particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: 0.5 * Math.random(), vy: 0.5 * Math.random(), time: 0});
+      QFTanimate();
+    }
+
+    userInput = []; // Reset the input after triggering
+  }
+  if (userInput.slice(-secret_3.length).join('') === secret_3.join('')) {
+    console.log('You found a secret!'); // Trigger the animation
+    // Stop the other simulations
+    animateQFT = false;
+    particles = [];
+
+    // Add a new planet
+    const massradius = Math.floor(Math.random() * 40);
+    planets.push({ x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), radius: massradius, mass: massradius/10, vx: 0, vy: 0, color: 'black' });
+
+    // Start the animation
+    if (!animateGR) {
+      animateGR = true;
+      GRanimate();
+    }
+
+    userInput = []; // Reset the input after triggering
+  }
+  if (userInput.slice(-secret_2.length).join('') === secret_2.join('')) {
+    console.log('You found a secret!'); // Trigger the animation
+    // Stop the other simulations
+    animateQFT = false;
+    animateGR = false;
+    particles = [];
     planets = [];
 
     confetti({
@@ -135,23 +293,11 @@ window.addEventListener('keydown', (e) => {
         y: Math.random() - 0.2
       }
     });
-
+  
     setTimeout(() => {
       confetti.reset();
     }, 10000);
 
-    QFTanimate();
-
-    userInput = []; // Reset the input after triggering
-  }
-  if (userInput.slice(-secret_3.length).join('') === secret_3.join('')) {
-    console.log('You found a secret!'); // Trigger the animation
-    // Add a new planet
-    const massradius = Math.floor(Math.random() * 40);
-    planets.push({ x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), radius: massradius, mass: massradius/10, vx: 0, vy: 0, color: 'black' });
-
-    // Start the animation
-    GRanimate();
     userInput = []; // Reset the input after triggering
   }
 });
