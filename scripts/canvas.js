@@ -91,427 +91,136 @@ function GRanimate() {
 }
 //-----------------------------------
 
-//---------- Tilings animation ----------
-const geoScale = 0.5;
-const geoSpeed = 1;
-const debug = false;
-// Discretise the canvas and find max lattice sizes
-var xmax = Math.ceil(canvas.width/(geoScale * 80));
-var ymax = Math.ceil(canvas.height/(geoScale * 80));
+//---------- Geometry animation ----------
+const pageContent = document.getElementById('page-content');
+const sections = Array.from(pageContent.children).filter(el => el.tagName === "DIV" && el.id != "speakers");
 
-var tiling = [];
-var wavefunction = Array.from({ length: xmax }, () => Array(ymax).fill([]));
-var entropies = Array.from({ length: xmax }, () => Array(ymax).fill(-1));
+// Save the body's html in order to later restore it
+const bodyHTML = document.body.innerHTML;
 
-function resetGEO() {
-  tiling = [];
-  wavefunction = Array.from({ length: xmax }, () => Array(ymax).fill([]));
-  entropies = Array.from({ length: xmax }, () => Array(ymax).fill(-1));
-}
+// Create a Three.js scene
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
 
-// Robinson tiles
-// edges robinsonTiles[0].edges are uniquely specified by a digit
-// [top, right, bottom, left, diagonals]
-// if the sum of two of these vanishes, they can be paired up
-// diagonals either stick out (rt.edges[-1] = 1) or not (rt.edges[-1] = 0)
-const robinsonTiles = [
-  {
-    tile: [[-60,0],[-40,10],[-40,30],[-50,40],[-40,50],[-30,40],[-10,40],[-10,60],[10,40],[30,40],[40,50],[50,40],[40,30],[40,10],[60,-10],[40,-10],[40,-30],[50,-40],[40,-50],[30,-40],[10,-40],[0,-60],[-10,-40],[-30,-40],[-40,-50],[-50,-40],[-40,-30],[-40,-10],[-60,0]],
-    lines: [[[0,50],[0,0],[50,0]]],
-    edges: [2, 3, 1, 1, 1]
-  },
-  {
-    tile: [[-40,-10],[-20,-10],[-40,10],[-40,30],[-30,40],[-10,40],[-10,20],[10,40],[30,40],[40,30],[40,10],[20,-10],[40,-10],[40,-30],[30,-40],[10,-40],[-10,-60],[-10,-40],[-30,-40],[-40,-30],[-40,-10]],
-    lines: [[[-30,0],[30,0]],[[0,-50],[0,30]]],
-    edges: [-3, -2, 3, -3, 0]
-  },
-  {
-    tile: [[-40,-10],[-20,-10],[-40,10],[-40,30],[-30,40],[-10,40],[0,20],[10,40],[30,40],[40,30],[40,10],[20,-10],[40,-10],[40,-30],[30,-40],[10,-40],[0,-60],[-10,-40],[-30,-40],[-40,-30],[-40,-10]],
-    lines: [[[-30,0],[30,0]]],
-    edges: [-1, -2, 1, -3, 0]
-  },
-  {
-    tile: [[-40,-10],[-60,0],[-40,10],[-40,30],[-30,40],[-10,40],[-10,60],[10,40],[30,40],[40,30],[40,10],[60,-10],[40,-10],[40,-30],[30,-40],[10,-40],[0,-60],[-10,-40],[-30,-40],[-40,-30],[-40,-10]],
-    lines: [[[0,50],[0,0],[50,0]]],
-    edges: [2, 3, 1, 1, 0]
-  },
-  {
-    tile: [[-40,-10],[-20,0],[-40,10],[-40,30],[-30,40],[-10,40],[-10,20],[10,40],[30,40],[40,30],[40,10],[20,0],[40,-10],[40,-30],[30,-40],[10,-40],[-10,-60],[-10,-40],[-30,-40],[-40,-30],[-40,-10]],
-    lines: [[[0,30],[0,-50]]],
-    edges: [-3, -1, 3, -1, 0]
-  },
-  {
-    tile: [[-40,-10],[-20,0],[-40,10],[-40,30],[-30,40],[-10,40],[0,20],[10,40],[30,40],[40,30],[40,10],[20,0],[40,-10],[40,-30],[30,-40],[10,-40],[0,-60],[-10,-40],[-30,-40],[-40,-30],[-40,-10]],
-    lines: [],
-    edges: [-1, -1, 1, -1, 0]
-  }
+// CSS3D Renderer for HTML faces
+const cssRenderer = new THREE.CSS3DRenderer();
+cssRenderer.setSize(window.innerWidth, window.innerHeight);
+cssRenderer.domElement.style.position = "absolute";
+cssRenderer.domElement.style.top = "0";
+
+// Create a cube group
+const cubeSize = 1000;
+const cube = new THREE.Group();
+
+// Add six faces to the cube
+const GeoCubeFaces = [
+  {position: { x: 0, y: 0, z: cubeSize / 2 }, rotation: { x: 0, y: 0, z: 0 } }, // Front
+  {position: { x: 0, y: -cubeSize / 2, z: 0 }, rotation: { x: Math.PI / 2, y: 0, z: 0 } },
+  {position: { x: 0, y: 0, z: -cubeSize / 2 }, rotation: { x: Math.PI, y: 0, z: 0 } },
+  {position: { x: 0, y: cubeSize / 2, z: 0 }, rotation: { x: -Math.PI / 2, y: 0, z: 0 } },
+  {position: { x: -cubeSize / 2, y: 0, z: 0 }, rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 } },
+  {position: { x: cubeSize / 2, y: 0, z: 0 }, rotation: { x: -Math.PI / 2, y: Math.PI / 2, z: 0 } }, 
 ];
 
-// List of all proto-tiles including transformations [tile num, trans]
-const tiles = [
-  [0,0],
-  [0,1],
-  [0,2],
-  [0,4],
-  [1,0],
-  [1,1],
-  [1,2],
-  [1,3],
-  [1,4],
-  [1,5],
-  [1,6],
-  [1,7],
-  [2,0],
-  [2,2],
-  [2,3],
-  [2,5],
-  [3,0],
-  [3,1],
-  [3,2],
-  [3,4],
-  [4,0],
-  [4,1],
-  [4,2],
-  [4,3],
-  [4,4],
-  [4,5],
-  [4,6],
-  [4,7],
-  [5,0],
-  [5,2],
-  [5,3],
-  [5,5]
-];
-const labels = Array.from({ length: tiles.length + 1 }, (_, i) => i);
+// Function to create cube faces using HTML elements
+function GEOPopulateCube(style, content, position, rotation) {
+  const div = document.createElement("div");
+  div.className = "cube-face";
+  div.style = style;
+  div.style.width = "1000px"
+  div.style.height = "1000px"
+  div.style.padding = "10px"
+  div.style.background = "rgba(255, 255, 255, 0.9)"
+  div.style.border = "1px solid black"
+  div.style.display = "flex"
+  div.style.alignItems = "center"
+  div.style.justifyContent = "center"
+  div.style.fontSize = "20px"
+  div.style.fontWeight = "bold"
+  div.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)"
+  div.innerHTML = content;
 
-// Function to reverse edge orientation label
-function flipEdge(edge) {
-  if (edge == 1) {
-    return 1;
-  } else if (edge == 2) {
-    return 3;
-  } else if (edge == 3) {
-    return 2;
-  } else if (edge == -1) {
-    return -1;
-  } else if (edge == -2) {
-    return -3;
-  } else if (edge == -3) {
-    return -2;
-  } else {
-    return edge;
-  }
+  const cssObject = new THREE.CSS3DObject(div);
+  cssObject.position.set(position.x, position.y, position.z);
+  cssObject.rotation.set(rotation.x, rotation.y, rotation.z);
+
+  return cssObject;
 }
 
-// Function to rotate/flip a proto-tile
-function transformTile(tile, trans) {
-  const edges = tile.edges;
+// Handle scrolling to rotate the cube
+let lastScrollY = window.scrollY;
+// Define 3 positions along scroll where to rotate cube differently
+const scrollYpos1 = 300;
+const scrollYpos2 = 1860+2*1560;
+const scrollYpos3 = 4215+2*1560;
+window.addEventListener("scroll", () => {
+    const scrollY = window.scrollY;
+    const scrollDelta = scrollY - lastScrollY;
 
-  if (trans == 0) {
-    return tile;
-  } else if (trans == 1) { // flip x
-    return {
-      tile: tile.tile.map(([x, y]) => [-x, y]),
-      lines: tile.lines.map(line => line.map(([x, y]) => [-x, y])),
-      edges: [edges[0],edges[3],edges[2],edges[1],edges[4]].map(flipEdge),
-    };
-  } else if (trans == 2) { // flip y
-    return {
-      tile: tile.tile.map(([x, y]) => [x, -y]),
-      lines: tile.lines.map(line => line.map(([x, y]) => [x, -y])),
-      edges: [edges[2],edges[1],edges[0],edges[3],edges[4]].map(flipEdge),
-    };
-  } else if (trans == 3) { // rotate 90deg counter clockwise
-    return {
-      tile: tile.tile.map(([x, y]) => [-y, x]),
-      lines: tile.lines.map(line => line.map(([x, y]) => [-y, x])),
-      edges: [edges[1],edges[2],edges[3],edges[0],edges[4]]
-    };
-  } else if (trans == 4) { // rotate 180deg counter clockwise
-    return {
-      tile: tile.tile.map(([x, y]) => [-x, -y]),
-      lines: tile.lines.map(line => line.map(([x, y]) => [-x, -y])),
-      edges: [edges[2],edges[3],edges[0],edges[1],edges[4]],
-    };
-  } else if (trans == 5) { // rotate 270deg counter clockwise
-    return {
-      tile: tile.tile.map(([x, y]) => [y, -x]),
-      lines: tile.lines.map(line => line.map(([x, y]) => [y, -x])),
-      edges: [edges[3],edges[0],edges[1],edges[2],edges[4]]
-    };
-  } else if (trans == 6) { // flip along diagonal /
-    return {
-      tile: tile.tile.map(([x, y]) => [y, x]),
-      lines: tile.lines.map(line => line.map(([x, y]) => [y, x])),
-      edges: [edges[1],edges[0],edges[3],edges[2],edges[4]].map(flipEdge)
-    };
-  } else if (trans == 7) { // flip along diagonal \
-    return {
-      tile: tile.tile.map(([x, y]) => [-y, -x]),
-      lines: tile.lines.map(line => line.map(([x, y]) => [-y, -x])),
-      edges: [edges[3],edges[2],edges[1],edges[0],edges[4]].map(flipEdge)
-    };
-  }
-}
-
-// Function to draw a shape given its edge coordinates
-function drawTiling(fillColor = null, strokeColor = 'gray') {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (debug) {
-    for (let i = 0; i < xmax; i++) {
-      for (let j = 0; j < ymax; j++) {
-        ctx.font = "10px Arial";
-        ctx.fillStyle = "red";
-        if (wavefunction[i][j].includes(0) || wavefunction[i][j].includes(1) || wavefunction[i][j].includes(2) || wavefunction[i][j].includes(3)) {
-          ctx.fillText(wavefunction[i][j].length, geoScale * (80 * i), geoScale * (80 * j));
-        } else if (!(wavefunction[i][j].length == 0)) {
-          ctx.fillStyle = "blue";
-          ctx.fillText(wavefunction[i][j].length, geoScale * (80 * i), geoScale * (80 * j));
-        }
-      }
-    }
-  }
-
-  tiling.forEach(tileData => {
-    const xpos = tileData[0];
-    const ypos = tileData[1];
-    const label = tileData[2];
-    const coordinates = transformTile(robinsonTiles[tiles[label][0]],tiles[label][1]).tile;
-    const lines = transformTile(robinsonTiles[[tiles[label][0]]],tiles[label][1]).lines;
-
-    if (coordinates.length < 2) {
-        console.error('At least two points are needed to draw a shape.');
-        return;
-    }
-
-    // Debug
-    if (debug) {
-      const edges = transformTile(robinsonTiles[tiles[label][0]],tiles[label][1]).edges;
-      ctx.font = "10px Arial";
-      ctx.fillText(edges[0], geoScale * (80 * xpos), geoScale * (80 * ypos + 30));
-      ctx.fillText(edges[1], geoScale * (80 * xpos + 30), geoScale * (80 * ypos));
-      ctx.fillText(edges[2], geoScale * (80 * xpos), geoScale * (80 * ypos - 30));
-      ctx.fillText(edges[3], geoScale * (80 * xpos - 30), geoScale * (80 * ypos));
-      ctx.fillStyle = "green";
-      ctx.font = "15px Arial";
-      ctx.fillText(tiles[label][0], geoScale * (80 * xpos), geoScale * (80 * ypos));
-    }
-
-    ctx.beginPath();
-    ctx.fillStyle = "black";
-    // Move to the first coordinate
-    ctx.moveTo(geoScale * (80 * xpos + coordinates[0][0]), geoScale * (80 * ypos + coordinates[0][1]));
-
-    // Draw lines to the subsequent coordinates
-    for (let i = 1; i < coordinates.length; i++) {
-        ctx.lineTo(geoScale * (80 * xpos + coordinates[i][0]), geoScale * (80 * ypos + coordinates[i][1]));
-    }
-
-    // Close the shape by connecting the last point to the first
-    ctx.closePath();
-
-    // Fill the shape if a fill color is specified
-    if (fillColor) {
-        ctx.fillStyle = fillColor;
-        ctx.fill();
-    }
-
-    // Stroke the shape
-    ctx.strokeStyle = strokeColor;
-    ctx.stroke();
-
-    // Draw the lines
-    lines.forEach(line => {
-      ctx.beginPath();
-      // Move to the first coordinate
-      ctx.moveTo(geoScale * (80 * xpos + line[0][0]), geoScale * (80 * ypos + line[0][1]));
-
-      // Draw lines to the subsequent coordinates
-      for (let i = 1; i < line.length; i++) {
-          ctx.lineTo(geoScale * (80 * xpos + line[i][0]), geoScale * (80 * ypos + line[i][1]));
-      }
-      // Close the shape by connecting the last point to the first
-      //ctx.closePath();
-
-      ctx.strokeStyle = "blue";
-      ctx.stroke();
-    });
-  });
-}
-
-// Finds the set of allowed tiles around a given tile
-// [[dx,dy],[[tile num, trans],...]]
-function wavefunctioncollapseRules(label) {
-  const tile = tiles[label];
-  const edges = transformTile(robinsonTiles[tile[0]],tile[1]).edges;
-  var rules = [];
-
-  // Force dx = 2 rules for the first proto tiles
-  if (tile[0] == 0 && tile[1] == 0) {
-    rules.push([[2,0],[1]]);
-    rules.push([[0,2],[2]]);
-    rules.push([[-2,0],[1]]);
-    rules.push([[0,-2],[2]]);
-  } else if (tile[0] == 0 && tile[1] == 1) {
-    rules.push([[2,0],[0]]);
-    rules.push([[0,2],[3]]);
-    rules.push([[-2,0],[0]]);
-    rules.push([[0,-2],[3]]);
-  } else if (tile[0] == 0 && tile[1] == 2) {
-    rules.push([[2,0],[3]]);
-    rules.push([[0,2],[0]]);
-    rules.push([[-2,0],[3]]);
-    rules.push([[0,-2],[0]]);
-  } else if (tile[0] == 0 && tile[1] == 4) {
-    rules.push([[2,0],[2]]);
-    rules.push([[0,2],[1]]);
-    rules.push([[-2,0],[2]]);
-    rules.push([[0,-2],[1]]);
-  }
-
-  // Search for suitable neighbours within all possible tiles
-  const searchPositions = [[1,0],[0,1],[-1,0],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
-  searchPositions.forEach(pos => {
-    var rule = [pos,[]];
-    tiles.forEach((rt, i) => {
-      const rtEdges = transformTile(robinsonTiles[rt[0]],rt[1]).edges;
-      if (pos[0] == 0 && pos[1] == 1) {
-        if (edges[0] + rtEdges[2] == 0) {
-          rule[1].push(i);
-        }
-      } else if (pos[0] == 1 && pos[1] == 0) {
-        if (edges[1] + rtEdges[3] == 0) {
-          rule[1].push(i);
-        }
-      } else if (pos[0] == 0 && pos[1] == -1) {
-        if (edges[2] + rtEdges[0] == 0) {
-          rule[1].push(i);
-        }
-      } else if (pos[0] == -1 && pos[1] == 0) {
-        if (edges[3] + rtEdges[1] == 0) {
-          rule[1].push(i);
-        }
-      } else {
-        if (edges[4] != rtEdges[4]) {
-          rule[1].push(i);
-        }
-      }
-    });
-
-    // don't add rule if no neighbours were found
-    if (rule[1].length > 0) {
-      rules.push(rule);
-    }
-  });
-
-  return rules;
-}
-
-function wavefunctioncollapse(wavefunction) {
-  var colx;
-  var coly;
-  var colTile;
-
-  // If tiling is empty, add random tile
-  if (tiling.length == 0) {
-    randx = Math.floor(Math.random() * xmax);
-    randy = Math.floor(Math.random() * ymax);
-    randtile = Math.floor(Math.random() * tiles.length);
-
-    wavefunction[randx][randy] = [randtile];
-    entropies[randx][randy] = 0;
-    tiling = [[randx,randy,randtile]];
-
-    colx = randx;
-    coly = randy;
-    colTile = randtile;
-  } else {
-
-    // Find highest entropy
-    var toCollapse = entropies.reduce(
-      (acc, row, i) =>
-          row.reduce((innerAcc, val, j) => {
-              if (val > innerAcc.max) {
-                  return { max: val, indices: [i, j] };
-              }
-              return innerAcc;
-          }, acc),
-      { max: -1, indices: [] }
-    );
-    //console.log("Highest entropy: ", toCollapse.max, toCollapse.indices);
-    // Overwrite highest entropy state if there are uncollapsed unique states
-    overWrite = false;
-    totalLoop: for (let i = 0; i < xmax; i++) {
-      for (let j = 0; j < ymax; j++) {
-        if (entropies[i][j] != 0 && wavefunction[i][j].length == 1) {
-          toCollapse = {max: entropies[i][j], indices: [i,j]};
-          break totalLoop;
-        }
-      }
-    }
-
-    // Collapse highest entropy state
-    if (toCollapse.max == 0) {
-      return;
+    if (lastScrollY < scrollYpos1) {
+      cube.rotation.x = (scrollYpos1-scrollY) * 0.001; // Vertical tilt
+      cube.rotation.z = (scrollYpos1-scrollY) * 0.002;;
+      camera.position.z = 1300+(scrollYpos1-scrollY)*10;
+    } else if (lastScrollY < scrollYpos2) {
+      cube.rotation.x = (scrollYpos1-scrollY) * 0.001; // Vertical tilt
+      cube.rotation.z = 0;
+      camera.position.z = 1300;
+    } else if (lastScrollY < scrollYpos3) {
+      cube.rotation.x = (scrollYpos1-scrollYpos2) * 0.001;
+      cube.rotation.z = (-scrollY+scrollYpos2) * 0.002;
+      camera.position.z = 1300;
     } else {
-      // Highest entropy state data
-      colx = toCollapse.indices[0];
-      coly = toCollapse.indices[1];
-      //console.log("Highest entropy: ", colx, coly);
-      colTile = wavefunction[colx][coly][Math.floor(Math.random() * wavefunction[colx][coly].length)];
-
-      wavefunction[colx][coly] = [colTile]
-      entropies[colx][coly] = 0;
-      tiling.push([colx, coly, colTile]);
+      cube.rotation.x = (scrollYpos3-scrollY+scrollYpos1-scrollYpos2) * 0.001;
+      cube.rotation.z = (-scrollY+scrollYpos2) * 0.002;
+      camera.position.z = 1300 + (scrollY-scrollYpos3)*5;
     }
-  }
+    lastScrollY = scrollY;
+    //console.log(lastScrollY);
+});
 
-  rules = wavefunctioncollapseRules(colTile);
-  //console.log("Rules: ", rules);
-  rules.forEach(rule => {
-    const x = colx + rule[0][0];
-    const y = coly + rule[0][1];
-    if (!(x < 0 || x >= xmax || y < 0 || y >= ymax)) {
-      if (!wavefunction[x][y].length == 1) {
-      
-        if (wavefunction[x][y].length == 0) {
-          wavefunction[x][y] = labels;
-        }
+function startGEO() {
+  animateGEO = true;
+  document.body.innerHTML = ""; // Clear the page
+  document.body.style.height = "10000px"; // Set the page height for full scrolling functionality
+  const container = document.createElement('div');
+  container.style = "position: fixed;width: 100vw;height: 100vh;top: 0;left: 0;"
+  document.body.appendChild(container);
+  container.appendChild(renderer.domElement); // Add the Three.js scene to the body
+  container.appendChild(cssRenderer.domElement);
 
-        // Only keep tile labels allowed by the rules
-        wavefunction[x][y] = wavefunction[x][y].filter(num => rule[1].includes(num));
-
-        if (wavefunction[x][y].length == 1) {
-          // collapse state if it's unique
-          //entropies[x][y] = 0
-          //console.log("collapsing: ", wavefunction[x][y][0]);
-          //tiling.push([x,y,wavefunction[x][y][0]]);
-          //console.log("hello");
-          //test(wavefunctioncollapseRules(wavefunction[x][y][0]));
-        } else {
-          // otherwise assign non-zero entropy
-          entropies[x][y] = wavefunction[x][y].length;
-        }
-      }
-    }
+  GeoCubeFaces.forEach((face, i) => {
+    cube.add(GEOPopulateCube(sections[i].style, sections[i].innerHTML, face.position, face.rotation));
   });
+
+  scene.add(cube);
+  cube.rotation.x = scrollYpos1 * 0.001; // Vertical tilt
+  cube.rotation.z = scrollYpos1 * 0.002;;
+  camera.position.z = 1300 + scrollYpos1 * 10;
+
+  window.scrollTo({ top: 0, behavior: "smooth" }); // Smoothly scoll back to the top of the page
+  window.scrollTo({ top: 300, behavior: "smooth" }); // Smoothly scoll back to the top of the page
+}
+function stopGEO() {
+  animateGEO = false;
+  document.body.innerHTML = bodyHTML;
+  document.body.style.removeProperty('height');
+
+  document.body.appendChild(canvas);
+  document.body.appendChild(infoBox);
+
+  animateGR = false;
+  animateQFT = false;
+  planets = [];
+  particles = [];
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-//document.addEventListener("keydown", (key) => {
-//  if (key.key == "ArrowRight") {
-//    wavefunctioncollapse(wavefunction);
-//  } else if (key.key == "ArrowLeft") {
-//    const lastTile = tiling[tiling.length-1];
-//    tiling = tiling.filter((_, i) => i !== tiling.length-1);
-//    wavefunction[lastTile[0]][lastTile[1]] = [];
-//  }
-//  drawTiling();
-//});
 function GEOanimate() {
   if (animateGEO) {
-    wavefunctioncollapse(wavefunction);
-    drawTiling();
+    cssRenderer.render(scene, camera);
+    renderer.render(scene, camera);
   }
   requestAnimationFrame(GEOanimate);
 }
@@ -822,10 +531,10 @@ window.addEventListener('keydown', (e) => {
   if (userInput.slice(-secret_1.length).join('') === secret_1.join('')) {
     console.log('You found a secret!'); // Trigger the animation
     // Stop the other simulations
+    stopGEO();
     animateGR = false;
     animateGEO = false;
     planets = [];
-    tiling = [];
     canvas.style.zIndex = '1000'; // Ensure the canvas at the front
 
     var ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
@@ -842,13 +551,30 @@ window.addEventListener('keydown', (e) => {
 
     userInput = []; // Reset the input after triggering
   }
-  if (userInput.slice(-secret_3.length).join('') === secret_3.join('')) {
+  if (userInput.slice(-secret_2.length).join('') === secret_2.join('')) {
     console.log('You found a secret!'); // Trigger the animation
     // Stop the other simulations
     animateQFT = false;
-    animateGEO = false;
+    animateGR = false;
     particles = [];
-    tiling = [];
+    planets = [];
+    canvas.style.zIndex = '-1'; // Ensure the canvas at the back
+
+    // Start the animation
+    if (!animateGEO) {
+      startGEO();
+    } else {
+      stopGEO();
+    }
+
+    userInput = []; // Reset the input after triggering
+  }
+  if (userInput.slice(-secret_3.length).join('') === secret_3.join('')) {
+    console.log('You found a secret!'); // Trigger the animation
+    // Stop the other simulations
+    stopGEO();
+    animateQFT = false;
+    particles = [];
     canvas.style.zIndex = '1000'; // Ensure the canvas at the front
 
     // Add a new planet
@@ -860,23 +586,6 @@ window.addEventListener('keydown', (e) => {
       animateGR = true;
       const massradius = Math.floor(Math.random() * 40);
       planets.push({ x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), radius: massradius, mass: massradius/10, vx: 2*(Math.random()-0.5), vy: 2*(Math.random()-0.5), color: 'black' });
-    }
-
-    userInput = []; // Reset the input after triggering
-  }
-  if (userInput.slice(-secret_2.length).join('') === secret_2.join('')) {
-    console.log('You found a secret!'); // Trigger the animation
-    // Stop the other simulations
-    animateQFT = false;
-    animateGR = false;
-    particles = [];
-    planets = [];
-    resetGEO();
-    canvas.style.zIndex = '-1'; // Ensure the canvas at the back
-
-    // Start the animation
-    if (!animateGEO) {
-      animateGEO = true;
     }
 
     userInput = []; // Reset the input after triggering
