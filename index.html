@@ -19,21 +19,23 @@
 <!-- Navbar -->
 <div class="w3-top">
   <div class="w3-bar w3-blue-gray w3-card">
-    <a class="w3-bar-item w3-button w3-padding-large w3-hide-medium w3-hide-large w3-right" href="javascript:void(0)" onclick="myFunction()" title="Toggle Navigation Menu"><i class="fa fa-bars"></i></a>
+    <a class="w3-bar-item w3-button w3-padding-large w3-hide-medium w3-hide-large w3-right" href="javascript:void(0)" onclick="navBarMobile()" title="Toggle Navigation Menu"><i class="fa fa-bars"></i></a>
     <a href="#about" class="w3-bar-item w3-button w3-padding-large">About</a>
     <a href="#speakers" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Speakers</a>
     <a href="#schedule" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Schedule</a>
     <a href="#access" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Access</a>
+    <a href="#registration" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Registration</a>
     <a href="#contact" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Contact</a>
   </div>
 </div>
 
 <!-- Navbar on small screens (remove the onclick attribute if you want the navbar to always show on top of the content when clicking on the links) -->
 <div id="navDemo" class="w3-bar-block w3-black w3-hide w3-hide-large w3-hide-medium w3-top" style="margin-top:46px">
-  <a href="#speakers" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">Speakers</a>
-  <a href="#schedule" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">Schedule</a>
-  <a href="#access" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">Access</a>
-  <a href="#contact" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">Contact</a>
+  <a href="#speakers" class="w3-bar-item w3-button w3-padding-large" onclick="navBarMobile()">Speakers</a>
+  <a href="#schedule" class="w3-bar-item w3-button w3-padding-large" onclick="navBarMobile()">Schedule</a>
+  <a href="#access" class="w3-bar-item w3-button w3-padding-large" onclick="navBarMobile()">Access</a>
+  <a href="#registration" class="w3-bar-item w3-button w3-padding-large" onclick="navBarMobile()">Registration</a>
+  <a href="#contact" class="w3-bar-item w3-button w3-padding-large" onclick="navBarMobile()">Contact</a>
 </div>
 
 <!-- Page content -->
@@ -41,7 +43,7 @@
 
   <!-- Landing Page Video -->
   <div class="w3-display-container w3-center">
-    <video width="800" height="600" autoplay muted loop disablepictureinpicture poster="assets/klein.png">
+    <video width="800" height="600" autoplay muted disablepictureinpicture poster="assets/klein.png">
       <source src="assets/klein.mp4" type="video/mp4">
       <source src="assets/klein.webm" type="video/webpm">
       <source src="assets/klein.ogv" type="video/ogv">
@@ -143,6 +145,37 @@
     </div>
   </div>
 
+  <!-- Registration -->
+  <div class="w3-container w3-content w3-padding-64" style="max-width:800px" id="registration">
+    <h2 class="w3-wide w3-center">Registration</h2>
+    <p class="w3-opacity w3-center"><i>Places are limited and priority is given to SEPnet students.</i></p>
+    <div class="w3-container w3-content w3-center">
+      <p class="w3-justify">
+      To register and submit an abstract for a poster presentation or talk please email <a href="mailto:qft.gravity.geometry2025@gmail.com ">qft.gravity.geometry2025@gmail.com</a>. Abstract deadline <b>7 February 2025</b>.
+      </p>
+      <p class="w3-justify">
+        Once your abstract has been accepted you will be notified by the conference organiser to register for this conference.  Registration deadline: <b>1 March 2025</b>.
+      </p>
+      <p class="w3-justify">
+        This event is only for SEPnet postgraduate and postdoctoral researchers. This event is free (SEPnet pays for your meals and course fees) for SEPnet postgraduate researchers and you should be able to claim for your travel expenses either from your department or RTSG. If in doubt, please ask your department about the arrangements for claiming for your travel.
+      </p>
+    </div>
+    <!-- Timeline -->
+    <div style="position: relative;">
+      <div style="width: 100%; height: 3px; border: 3px solid gray; border-radius: 2px; background-color: gray; margin-top: 100px;"></div>
+      <div style="position: absolute; left: 20%; top: 20px; transform: translateX(-50%);">7th February</div>
+      <div style="position: absolute; left: 20%; top: -40px; transform: translateX(-50%);">Abstract deadline</div>
+      <div id="timeline-abstract" style="position: absolute; left: 20%; top: 0; transform: translate(-50%,-35%); border-radius: 10px; border: 10px solid gray"></div>
+      <div style="position: absolute; left: 55%; top: 20px; transform: translateX(-50%);">1st March</div>
+      <div style="position: absolute; left: 55%; top: -40px; transform: translateX(-50%);">Registration deadline</div>
+      <div id="timeline-registration" style="position: absolute; left: 55%; top: 0; transform: translate(-50%,-35%); border-radius: 10px; border: 10px solid gray"></div>
+      <div style="position: absolute; right: 0; top: 20px; transform: translateX(-50%);">19th March</div>
+      <div style="position: absolute; right: 0; top: -40px; transform: translateX(-50%);">Conference</div>
+      <div id="timeline-conference" style="position: absolute; right: 65px; top: 0; transform: translate(-50%,-35%); border-radius: 10px; border: 10px solid gray"></div>
+      <div id="timeline-progressbar" style="position: absolute; width: 10%; height: 3px; border: 3px solid #2196F3; border-radius: 2px; background-color: #2196F3; margin-top: 100px; top: -100px"></div>
+    </div>
+  </div>
+
   <!-- Access -->
   <div class="w3-container w3-content w3-padding-64" style="max-width:800px" id="access">
     <h2 class="w3-wide w3-center">Access</h2>
@@ -207,6 +240,7 @@
 <footer class="w3-container w3-padding-64 w3-center w3-opacity w3-light-grey w3-xlarge">
   <a href="mailto:qft.gravity.geometry2025@gmail.com "><i class="fa fa-envelope" style="width:30px"></i></a>
   <p class="w3-medium">SEPnet student-led conference "Quantum Field Theory, Gravity and Geometry" 19 March 2025 at One Park Crescent, London, United Kingdom.</p>
+  <p style="font-size: 5px;">Warning: may contains traces of Easter eggs... "Q","F","T"... wonder what happens when I type that on the keyboard? What about the other two topics?</p>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <script src="scripts/canvas.js"></script>
@@ -214,7 +248,7 @@
 const now = new Date(); //Get current time
 
 // Used to toggle the menu on small screens when clicking on the menu button
-function myFunction() {
+function navBarMobile() {
   var x = document.getElementById("navDemo");
   if (x.className.indexOf("w3-show") == -1) {
     x.className += " w3-show";
@@ -231,7 +265,7 @@ window.onclick = function(event) {
   }
 }
 
-// Function to check and highlight the timetable's row
+// ---------- Timetable ----------
 function highlightCurrentRow() {
     // Get the current time in hours and minutes
     const currentTime = now.getHours() * 60 + now.getMinutes(); // Convert time to minutes since midnight
@@ -263,6 +297,33 @@ function highlightCurrentRow() {
 if (now.getDate() == 19 && now.getMonth() == 2 && now.getFullYear() == 2025) {
   highlightCurrentRow();
   setInterval(highlightCurrentRow, 60000);
+}
+
+// ---------- Registration Timeline ----------
+var tlProgressbar = document.getElementById('timeline-progressbar');
+var tlAbstract = document.getElementById('timeline-abstract');
+var tlRegistration = document.getElementById('timeline-registration');
+var tlConference = document.getElementById('timeline-conference');
+if (now.getDate() < 7 || now.getMonth() <= 1) {
+  tlProgressbar.style.width = "10%";
+  tlAbstract.style.border = "10px solid gray";
+  tlRegistration.style.border = "10px solid gray";
+  tlConference.style.border = "10px solid gray";
+} else if (now.getDate() >= 7 && now.getMonth() == 1) {
+  tlProgressbar.style.width = "40%";
+  tlAbstract.style.border = "10px solid #2196F3";
+  tlRegistration.style.border = "10px solid gray";
+  tlConference.style.border = "10px solid gray";
+} else if (now.getDate() >= 1 && now.getMonth() == 2) {
+  tlProgressbar.style.width = "70%";
+  tlAbstract.style.border = "10px solid #2196F3";
+  tlRegistration.style.border = "10px solid #2196F3";
+  tlConference.style.border = "10px solid gray";
+} else {
+  tlProgressbar.style.width = "100%";
+  tlAbstract.style.border = "10px solid #2196F3";
+  tlRegistration.style.border = "10px solid #2196F3";
+  tlConference.style.border = "10px solid #2196F3";
 }
 
 // Function to equalize the height of our name tags

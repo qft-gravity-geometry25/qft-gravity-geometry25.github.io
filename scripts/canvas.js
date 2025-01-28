@@ -83,11 +83,439 @@ function GRdrawPlanets() {
 
 // Animation loop
 function GRanimate() {
-  GRupdatePositions();
-  GRdrawPlanets();
+  if (animateGR) {
+    GRupdatePositions();
+    GRdrawPlanets();
+  }
   requestAnimationFrame(GRanimate);
 }
 //-----------------------------------
+
+//---------- Tilings animation ----------
+const geoScale = 0.5;
+const geoSpeed = 1;
+const debug = false;
+// Discretise the canvas and find max lattice sizes
+var xmax = Math.ceil(canvas.width/(geoScale * 80));
+var ymax = Math.ceil(canvas.height/(geoScale * 80));
+
+var tiling = [];
+var wavefunction = Array.from({ length: xmax }, () => Array(ymax).fill([]));
+var entropies = Array.from({ length: xmax }, () => Array(ymax).fill(-1));
+
+function resetGEO() {
+  tiling = [];
+  wavefunction = Array.from({ length: xmax }, () => Array(ymax).fill([]));
+  entropies = Array.from({ length: xmax }, () => Array(ymax).fill(-1));
+}
+
+// Robinson tiles
+// edges robinsonTiles[0].edges are uniquely specified by a digit
+// [top, right, bottom, left, diagonals]
+// if the sum of two of these vanishes, they can be paired up
+// diagonals either stick out (rt.edges[-1] = 1) or not (rt.edges[-1] = 0)
+const robinsonTiles = [
+  {
+    tile: [[-60,0],[-40,10],[-40,30],[-50,40],[-40,50],[-30,40],[-10,40],[-10,60],[10,40],[30,40],[40,50],[50,40],[40,30],[40,10],[60,-10],[40,-10],[40,-30],[50,-40],[40,-50],[30,-40],[10,-40],[0,-60],[-10,-40],[-30,-40],[-40,-50],[-50,-40],[-40,-30],[-40,-10],[-60,0]],
+    lines: [[[0,50],[0,0],[50,0]]],
+    edges: [2, 3, 1, 1, 1]
+  },
+  {
+    tile: [[-40,-10],[-20,-10],[-40,10],[-40,30],[-30,40],[-10,40],[-10,20],[10,40],[30,40],[40,30],[40,10],[20,-10],[40,-10],[40,-30],[30,-40],[10,-40],[-10,-60],[-10,-40],[-30,-40],[-40,-30],[-40,-10]],
+    lines: [[[-30,0],[30,0]],[[0,-50],[0,30]]],
+    edges: [-3, -2, 3, -3, 0]
+  },
+  {
+    tile: [[-40,-10],[-20,-10],[-40,10],[-40,30],[-30,40],[-10,40],[0,20],[10,40],[30,40],[40,30],[40,10],[20,-10],[40,-10],[40,-30],[30,-40],[10,-40],[0,-60],[-10,-40],[-30,-40],[-40,-30],[-40,-10]],
+    lines: [[[-30,0],[30,0]]],
+    edges: [-1, -2, 1, -3, 0]
+  },
+  {
+    tile: [[-40,-10],[-60,0],[-40,10],[-40,30],[-30,40],[-10,40],[-10,60],[10,40],[30,40],[40,30],[40,10],[60,-10],[40,-10],[40,-30],[30,-40],[10,-40],[0,-60],[-10,-40],[-30,-40],[-40,-30],[-40,-10]],
+    lines: [[[0,50],[0,0],[50,0]]],
+    edges: [2, 3, 1, 1, 0]
+  },
+  {
+    tile: [[-40,-10],[-20,0],[-40,10],[-40,30],[-30,40],[-10,40],[-10,20],[10,40],[30,40],[40,30],[40,10],[20,0],[40,-10],[40,-30],[30,-40],[10,-40],[-10,-60],[-10,-40],[-30,-40],[-40,-30],[-40,-10]],
+    lines: [[[0,30],[0,-50]]],
+    edges: [-3, -1, 3, -1, 0]
+  },
+  {
+    tile: [[-40,-10],[-20,0],[-40,10],[-40,30],[-30,40],[-10,40],[0,20],[10,40],[30,40],[40,30],[40,10],[20,0],[40,-10],[40,-30],[30,-40],[10,-40],[0,-60],[-10,-40],[-30,-40],[-40,-30],[-40,-10]],
+    lines: [],
+    edges: [-1, -1, 1, -1, 0]
+  }
+];
+
+// List of all proto-tiles including transformations [tile num, trans]
+const tiles = [
+  [0,0],
+  [0,1],
+  [0,2],
+  [0,4],
+  [1,0],
+  [1,1],
+  [1,2],
+  [1,3],
+  [1,4],
+  [1,5],
+  [1,6],
+  [1,7],
+  [2,0],
+  [2,2],
+  [2,3],
+  [2,5],
+  [3,0],
+  [3,1],
+  [3,2],
+  [3,4],
+  [4,0],
+  [4,1],
+  [4,2],
+  [4,3],
+  [4,4],
+  [4,5],
+  [4,6],
+  [4,7],
+  [5,0],
+  [5,2],
+  [5,3],
+  [5,5]
+];
+const labels = Array.from({ length: tiles.length + 1 }, (_, i) => i);
+
+// Function to reverse edge orientation label
+function flipEdge(edge) {
+  if (edge == 1) {
+    return 1;
+  } else if (edge == 2) {
+    return 3;
+  } else if (edge == 3) {
+    return 2;
+  } else if (edge == -1) {
+    return -1;
+  } else if (edge == -2) {
+    return -3;
+  } else if (edge == -3) {
+    return -2;
+  } else {
+    return edge;
+  }
+}
+
+// Function to rotate/flip a proto-tile
+function transformTile(tile, trans) {
+  const edges = tile.edges;
+
+  if (trans == 0) {
+    return tile;
+  } else if (trans == 1) { // flip x
+    return {
+      tile: tile.tile.map(([x, y]) => [-x, y]),
+      lines: tile.lines.map(line => line.map(([x, y]) => [-x, y])),
+      edges: [edges[0],edges[3],edges[2],edges[1],edges[4]].map(flipEdge),
+    };
+  } else if (trans == 2) { // flip y
+    return {
+      tile: tile.tile.map(([x, y]) => [x, -y]),
+      lines: tile.lines.map(line => line.map(([x, y]) => [x, -y])),
+      edges: [edges[2],edges[1],edges[0],edges[3],edges[4]].map(flipEdge),
+    };
+  } else if (trans == 3) { // rotate 90deg counter clockwise
+    return {
+      tile: tile.tile.map(([x, y]) => [-y, x]),
+      lines: tile.lines.map(line => line.map(([x, y]) => [-y, x])),
+      edges: [edges[1],edges[2],edges[3],edges[0],edges[4]]
+    };
+  } else if (trans == 4) { // rotate 180deg counter clockwise
+    return {
+      tile: tile.tile.map(([x, y]) => [-x, -y]),
+      lines: tile.lines.map(line => line.map(([x, y]) => [-x, -y])),
+      edges: [edges[2],edges[3],edges[0],edges[1],edges[4]],
+    };
+  } else if (trans == 5) { // rotate 270deg counter clockwise
+    return {
+      tile: tile.tile.map(([x, y]) => [y, -x]),
+      lines: tile.lines.map(line => line.map(([x, y]) => [y, -x])),
+      edges: [edges[3],edges[0],edges[1],edges[2],edges[4]]
+    };
+  } else if (trans == 6) { // flip along diagonal /
+    return {
+      tile: tile.tile.map(([x, y]) => [y, x]),
+      lines: tile.lines.map(line => line.map(([x, y]) => [y, x])),
+      edges: [edges[1],edges[0],edges[3],edges[2],edges[4]].map(flipEdge)
+    };
+  } else if (trans == 7) { // flip along diagonal \
+    return {
+      tile: tile.tile.map(([x, y]) => [-y, -x]),
+      lines: tile.lines.map(line => line.map(([x, y]) => [-y, -x])),
+      edges: [edges[3],edges[2],edges[1],edges[0],edges[4]].map(flipEdge)
+    };
+  }
+}
+
+// Function to draw a shape given its edge coordinates
+function drawTiling(fillColor = null, strokeColor = 'gray') {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (debug) {
+    for (let i = 0; i < xmax; i++) {
+      for (let j = 0; j < ymax; j++) {
+        ctx.font = "10px Arial";
+        ctx.fillStyle = "red";
+        if (wavefunction[i][j].includes(0) || wavefunction[i][j].includes(1) || wavefunction[i][j].includes(2) || wavefunction[i][j].includes(3)) {
+          ctx.fillText(wavefunction[i][j].length, geoScale * (80 * i), geoScale * (80 * j));
+        } else if (!(wavefunction[i][j].length == 0)) {
+          ctx.fillStyle = "blue";
+          ctx.fillText(wavefunction[i][j].length, geoScale * (80 * i), geoScale * (80 * j));
+        }
+      }
+    }
+  }
+
+  tiling.forEach(tileData => {
+    const xpos = tileData[0];
+    const ypos = tileData[1];
+    const label = tileData[2];
+    const coordinates = transformTile(robinsonTiles[tiles[label][0]],tiles[label][1]).tile;
+    const lines = transformTile(robinsonTiles[[tiles[label][0]]],tiles[label][1]).lines;
+
+    if (coordinates.length < 2) {
+        console.error('At least two points are needed to draw a shape.');
+        return;
+    }
+
+    // Debug
+    if (debug) {
+      const edges = transformTile(robinsonTiles[tiles[label][0]],tiles[label][1]).edges;
+      ctx.font = "10px Arial";
+      ctx.fillText(edges[0], geoScale * (80 * xpos), geoScale * (80 * ypos + 30));
+      ctx.fillText(edges[1], geoScale * (80 * xpos + 30), geoScale * (80 * ypos));
+      ctx.fillText(edges[2], geoScale * (80 * xpos), geoScale * (80 * ypos - 30));
+      ctx.fillText(edges[3], geoScale * (80 * xpos - 30), geoScale * (80 * ypos));
+      ctx.fillStyle = "green";
+      ctx.font = "15px Arial";
+      ctx.fillText(tiles[label][0], geoScale * (80 * xpos), geoScale * (80 * ypos));
+    }
+
+    ctx.beginPath();
+    ctx.fillStyle = "black";
+    // Move to the first coordinate
+    ctx.moveTo(geoScale * (80 * xpos + coordinates[0][0]), geoScale * (80 * ypos + coordinates[0][1]));
+
+    // Draw lines to the subsequent coordinates
+    for (let i = 1; i < coordinates.length; i++) {
+        ctx.lineTo(geoScale * (80 * xpos + coordinates[i][0]), geoScale * (80 * ypos + coordinates[i][1]));
+    }
+
+    // Close the shape by connecting the last point to the first
+    ctx.closePath();
+
+    // Fill the shape if a fill color is specified
+    if (fillColor) {
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+    }
+
+    // Stroke the shape
+    ctx.strokeStyle = strokeColor;
+    ctx.stroke();
+
+    // Draw the lines
+    lines.forEach(line => {
+      ctx.beginPath();
+      // Move to the first coordinate
+      ctx.moveTo(geoScale * (80 * xpos + line[0][0]), geoScale * (80 * ypos + line[0][1]));
+
+      // Draw lines to the subsequent coordinates
+      for (let i = 1; i < line.length; i++) {
+          ctx.lineTo(geoScale * (80 * xpos + line[i][0]), geoScale * (80 * ypos + line[i][1]));
+      }
+      // Close the shape by connecting the last point to the first
+      //ctx.closePath();
+
+      ctx.strokeStyle = "blue";
+      ctx.stroke();
+    });
+  });
+}
+
+// Finds the set of allowed tiles around a given tile
+// [[dx,dy],[[tile num, trans],...]]
+function wavefunctioncollapseRules(label) {
+  const tile = tiles[label];
+  const edges = transformTile(robinsonTiles[tile[0]],tile[1]).edges;
+  var rules = [];
+
+  // Force dx = 2 rules for the first proto tiles
+  if (tile[0] == 0 && tile[1] == 0) {
+    rules.push([[2,0],[1]]);
+    rules.push([[0,2],[2]]);
+    rules.push([[-2,0],[1]]);
+    rules.push([[0,-2],[2]]);
+  } else if (tile[0] == 0 && tile[1] == 1) {
+    rules.push([[2,0],[0]]);
+    rules.push([[0,2],[3]]);
+    rules.push([[-2,0],[0]]);
+    rules.push([[0,-2],[3]]);
+  } else if (tile[0] == 0 && tile[1] == 2) {
+    rules.push([[2,0],[3]]);
+    rules.push([[0,2],[0]]);
+    rules.push([[-2,0],[3]]);
+    rules.push([[0,-2],[0]]);
+  } else if (tile[0] == 0 && tile[1] == 4) {
+    rules.push([[2,0],[2]]);
+    rules.push([[0,2],[1]]);
+    rules.push([[-2,0],[2]]);
+    rules.push([[0,-2],[1]]);
+  }
+
+  // Search for suitable neighbours within all possible tiles
+  const searchPositions = [[1,0],[0,1],[-1,0],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+  searchPositions.forEach(pos => {
+    var rule = [pos,[]];
+    tiles.forEach((rt, i) => {
+      const rtEdges = transformTile(robinsonTiles[rt[0]],rt[1]).edges;
+      if (pos[0] == 0 && pos[1] == 1) {
+        if (edges[0] + rtEdges[2] == 0) {
+          rule[1].push(i);
+        }
+      } else if (pos[0] == 1 && pos[1] == 0) {
+        if (edges[1] + rtEdges[3] == 0) {
+          rule[1].push(i);
+        }
+      } else if (pos[0] == 0 && pos[1] == -1) {
+        if (edges[2] + rtEdges[0] == 0) {
+          rule[1].push(i);
+        }
+      } else if (pos[0] == -1 && pos[1] == 0) {
+        if (edges[3] + rtEdges[1] == 0) {
+          rule[1].push(i);
+        }
+      } else {
+        if (edges[4] != rtEdges[4]) {
+          rule[1].push(i);
+        }
+      }
+    });
+
+    // don't add rule if no neighbours were found
+    if (rule[1].length > 0) {
+      rules.push(rule);
+    }
+  });
+
+  return rules;
+}
+
+function wavefunctioncollapse(wavefunction) {
+  var colx;
+  var coly;
+  var colTile;
+
+  // If tiling is empty, add random tile
+  if (tiling.length == 0) {
+    randx = Math.floor(Math.random() * xmax);
+    randy = Math.floor(Math.random() * ymax);
+    randtile = Math.floor(Math.random() * tiles.length);
+
+    wavefunction[randx][randy] = [randtile];
+    entropies[randx][randy] = 0;
+    tiling = [[randx,randy,randtile]];
+
+    colx = randx;
+    coly = randy;
+    colTile = randtile;
+  } else {
+
+    // Find highest entropy
+    var toCollapse = entropies.reduce(
+      (acc, row, i) =>
+          row.reduce((innerAcc, val, j) => {
+              if (val > innerAcc.max) {
+                  return { max: val, indices: [i, j] };
+              }
+              return innerAcc;
+          }, acc),
+      { max: -1, indices: [] }
+    );
+    //console.log("Highest entropy: ", toCollapse.max, toCollapse.indices);
+    // Overwrite highest entropy state if there are uncollapsed unique states
+    overWrite = false;
+    totalLoop: for (let i = 0; i < xmax; i++) {
+      for (let j = 0; j < ymax; j++) {
+        if (entropies[i][j] != 0 && wavefunction[i][j].length == 1) {
+          toCollapse = {max: entropies[i][j], indices: [i,j]};
+          break totalLoop;
+        }
+      }
+    }
+
+    // Collapse highest entropy state
+    if (toCollapse.max == 0) {
+      return;
+    } else {
+      // Highest entropy state data
+      colx = toCollapse.indices[0];
+      coly = toCollapse.indices[1];
+      //console.log("Highest entropy: ", colx, coly);
+      colTile = wavefunction[colx][coly][Math.floor(Math.random() * wavefunction[colx][coly].length)];
+
+      wavefunction[colx][coly] = [colTile]
+      entropies[colx][coly] = 0;
+      tiling.push([colx, coly, colTile]);
+    }
+  }
+
+  rules = wavefunctioncollapseRules(colTile);
+  //console.log("Rules: ", rules);
+  rules.forEach(rule => {
+    const x = colx + rule[0][0];
+    const y = coly + rule[0][1];
+    if (!(x < 0 || x >= xmax || y < 0 || y >= ymax)) {
+      if (!wavefunction[x][y].length == 1) {
+      
+        if (wavefunction[x][y].length == 0) {
+          wavefunction[x][y] = labels;
+        }
+
+        // Only keep tile labels allowed by the rules
+        wavefunction[x][y] = wavefunction[x][y].filter(num => rule[1].includes(num));
+
+        if (wavefunction[x][y].length == 1) {
+          // collapse state if it's unique
+          //entropies[x][y] = 0
+          //console.log("collapsing: ", wavefunction[x][y][0]);
+          //tiling.push([x,y,wavefunction[x][y][0]]);
+          //console.log("hello");
+          //test(wavefunctioncollapseRules(wavefunction[x][y][0]));
+        } else {
+          // otherwise assign non-zero entropy
+          entropies[x][y] = wavefunction[x][y].length;
+        }
+      }
+    }
+  });
+}
+
+//document.addEventListener("keydown", (key) => {
+//  if (key.key == "ArrowRight") {
+//    wavefunctioncollapse(wavefunction);
+//  } else if (key.key == "ArrowLeft") {
+//    const lastTile = tiling[tiling.length-1];
+//    tiling = tiling.filter((_, i) => i !== tiling.length-1);
+//    wavefunction[lastTile[0]][lastTile[1]] = [];
+//  }
+//  drawTiling();
+//});
+function GEOanimate() {
+  if (animateGEO) {
+    wavefunctioncollapse(wavefunction);
+    drawTiling();
+  }
+  requestAnimationFrame(GEOanimate);
+}
+//---------------------------------------
 
 //---------- Particle Simulation ----------
 const b = 0.01; // magnetic field strength
@@ -231,9 +659,9 @@ function QFTdecay() {
 
 function QFTinteract() {
   particles.forEach((particle, pindex) => {
-    if (particle.time > 100) {
+    if (particle.time > 100) { // Only allow older particles to interact
       for (let i = 0; i < particles.length && i != pindex; i++) {
-        if (Math.pow(particle.x - particles[i].x, 2) + Math.pow(particle.y - particles[i].y, 2) < 100) {
+        if (Math.pow(particle.x - particles[i].x, 2) + Math.pow(particle.y - particles[i].y, 2) < 100) { // Search all other particles in a radius of 10
           interaction = interactionTable.findIndex(item => (item.in[0] === particle.type && item.in[1] === particles[i].type) || (item.in[1] === particle.type && item.in[0] === particles[i].type));
           if (interaction != -1) {
             //Remove the interacting particles
@@ -300,9 +728,19 @@ function QFTupdatePositions() {
 
     if (particle.x < 0 || particle.x > canvas.width) {
       particle.vx = -particle.vx;
+      if (particle.x < 0) {
+        particle.x = 0;
+      } else {
+        particle.x = canvas.width;
+      }
     }
     if (particle.y < 0 || particle.y > canvas.height) {
       particle.vy = -particle.vy;
+      if (particle.y < 0) {
+        particle.y = 0;
+      } else {
+        particle.y = canvas.height;
+      }
     }
   });
 }
@@ -351,11 +789,13 @@ function updateInfoBox() {
 
 // Animation loop
 function QFTanimate() {
-  QFTinteract();
-  QFTdecay();
-  QFTupdatePositions();
-  QFTdrawParticles();
-  updateInfoBox();
+  if (animateQFT) {
+    QFTinteract();
+    QFTdecay();
+    QFTupdatePositions();
+    QFTdrawParticles();
+    updateInfoBox();
+  }
   requestAnimationFrame(QFTanimate);
 }
 //-----------------------------------------
@@ -363,6 +803,10 @@ function QFTanimate() {
 //---------- Start all animations ----------
 animateGR = false;
 animateQFT = false;
+animateGEO = false;
+QFTanimate();
+GRanimate();
+GEOanimate();
 //------------------------------------------
 
 const secret_1 = ['q','f','t'];
@@ -379,7 +823,10 @@ window.addEventListener('keydown', (e) => {
     console.log('You found a secret!'); // Trigger the animation
     // Stop the other simulations
     animateGR = false;
+    animateGEO = false;
     planets = [];
+    tiling = [];
+    canvas.style.zIndex = '1000'; // Ensure the canvas at the front
 
     var ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
     particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: Math.random(), vy: Math.random(), time: 0});
@@ -387,13 +834,10 @@ window.addEventListener('keydown', (e) => {
     // Start the animation with three random particles
     if (!animateQFT) {
       animateQFT = true;
-      ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
-      particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: 0.5 * Math.random(), vy: 0.5 * Math.random(), time: 0});
-      ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
-      particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: 0.5 * Math.random(), vy: 0.5 * Math.random(), time: 0});
-      ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
-      particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: 0.5 * Math.random(), vy: 0.5 * Math.random(), time: 0});
-      QFTanimate();
+      for (let i = 0; i<4; i++) {
+        ptype = particleInfo[Math.floor(Math.random() * particleInfo.length)].type;
+        particles.push({type: ptype,x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), vx: 0.5 * Math.random(), vy: 0.5 * Math.random(), time: 0});
+      }
     }
 
     userInput = []; // Reset the input after triggering
@@ -402,16 +846,20 @@ window.addEventListener('keydown', (e) => {
     console.log('You found a secret!'); // Trigger the animation
     // Stop the other simulations
     animateQFT = false;
+    animateGEO = false;
     particles = [];
+    tiling = [];
+    canvas.style.zIndex = '1000'; // Ensure the canvas at the front
 
     // Add a new planet
     const massradius = Math.floor(Math.random() * 40);
-    planets.push({ x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), radius: massradius, mass: massradius/10, vx: 0, vy: 0, color: 'black' });
+    planets.push({ x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), radius: massradius, mass: massradius/10, vx: 2*(Math.random()-0.5), vy: 2*(Math.random()-0.5), color: 'black' });
 
     // Start the animation
     if (!animateGR) {
       animateGR = true;
-      GRanimate();
+      const massradius = Math.floor(Math.random() * 40);
+      planets.push({ x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), radius: massradius, mass: massradius/10, vx: 2*(Math.random()-0.5), vy: 2*(Math.random()-0.5), color: 'black' });
     }
 
     userInput = []; // Reset the input after triggering
@@ -423,21 +871,13 @@ window.addEventListener('keydown', (e) => {
     animateGR = false;
     particles = [];
     planets = [];
+    resetGEO();
+    canvas.style.zIndex = '-1'; // Ensure the canvas at the back
 
-    confetti({
-      particleCount: 100,
-      startVelocity: 30,
-      spread: 360,
-      origin: {
-        x: Math.random(),
-        // since they fall down, start a bit higher than random
-        y: Math.random() - 0.2
-      }
-    });
-  
-    setTimeout(() => {
-      confetti.reset();
-    }, 10000);
+    // Start the animation
+    if (!animateGEO) {
+      animateGEO = true;
+    }
 
     userInput = []; // Reset the input after triggering
   }
