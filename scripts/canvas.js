@@ -209,12 +209,6 @@ function stopGEO() {
 
   document.body.appendChild(canvas);
   document.body.appendChild(infoBox);
-
-  animateGR = false;
-  animateQFT = false;
-  planets = [];
-  particles = [];
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function GEOanimate() {
@@ -531,7 +525,6 @@ window.addEventListener('keydown', (e) => {
   if (userInput.slice(-secret_1.length).join('') === secret_1.join('')) {
     console.log('You found a secret!'); // Trigger the animation
     // Stop the other simulations
-    stopGEO();
     animateGR = false;
     animateGEO = false;
     planets = [];
@@ -565,6 +558,11 @@ window.addEventListener('keydown', (e) => {
       startGEO();
     } else {
       stopGEO();
+      animateGR = false;
+      animateQFT = false;
+      planets = [];
+      particles = [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
     userInput = []; // Reset the input after triggering
@@ -572,7 +570,6 @@ window.addEventListener('keydown', (e) => {
   if (userInput.slice(-secret_3.length).join('') === secret_3.join('')) {
     console.log('You found a secret!'); // Trigger the animation
     // Stop the other simulations
-    stopGEO();
     animateQFT = false;
     particles = [];
     canvas.style.zIndex = '1000'; // Ensure the canvas at the front
