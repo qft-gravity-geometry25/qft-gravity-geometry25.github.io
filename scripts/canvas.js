@@ -794,8 +794,8 @@ function QFTanimate() {
     QFTdecay();
     QFTupdatePositions();
     QFTdrawParticles();
-    updateInfoBox();
   }
+  updateInfoBox();
   requestAnimationFrame(QFTanimate);
 }
 //-----------------------------------------
