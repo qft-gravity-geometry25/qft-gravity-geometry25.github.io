@@ -237,7 +237,8 @@ const particleInfo = [
   {type: "Wp", color: "rgb(30, 140, 0)", radius: 10, charge: 1, hl: 200, display: "W plus boson"},
   {type: "Wm", color: "rgb(140, 30, 0)", radius: 10, charge: -1, hl: 200, display: "W minus boson"},
   {type: "ph", color: "rgb(250, 90, 0)", radius: 3, charge: 0, hl: 10000, display: "photon"},
-  {type: "H", color: "rgb(30, 30, 30)", radius: 20, charge: 0, hl: 100, display: "Higgs boson"}
+  {type: "H", color: "rgb(30, 30, 30)", radius: 20, charge: 0, hl: 100, display: "Higgs boson"},
+  {type: "B", color: "rgb(0, 0, 255)", radius: 50, charge: 10, hl: 10, display: "Benjamino"} // for fun
   //{type: "u", color: "rgb(255, 30, 30)", radius: 2, charge: 0.6, hl: 100000, display: "up quark"},
   //{type: "ub", color: "rgb(0, 225, 225)", radius: 2, charge: -0.6, hl: 100000, display: "anti up quark"},
   //{type: "d", color: "rgb(30, 255, 30)", radius: 2, charge: -0.3, hl: 100000, display: "down quark"},
@@ -254,7 +255,8 @@ const decayTable = [
   {type: "Wp", decay: [["ep","nue"],["mup","numu"],["taup","nutau"]], cumprob: [0.5, 0.8, 1]},
   {type: "Z", decay: [["e","ep"],["mu","mup"],["tau","taup"]], cumprob: [0.4, 0.7, 1]},
   {type: "ph", decay: [["e","ep"],["mu","mup"],["tau","taup"]], cumprob: [0.2, 0.3, 0.35]},
-  {type: "H", decay: [["Wp","Wm"],["Z","Z"],["ph","Z"]], cumprob: [0.3, 0.6, 1]}
+  {type: "H", decay: [["Wp","Wm"],["Z","Z"],["ph","Z"]], cumprob: [0.3, 0.6, 1]},
+  {type: "B", decay: [["H","H"]], cumprob: [1]}, // for fun
 ];
 const interactionTable = [
   {in: ["e","ep"], out: ["ph","Z"], cumprob: [0.8, 1]},
@@ -277,7 +279,8 @@ const interactionTable = [
   {in: ["ph","Z"], out: ["Z"], cumprob: [1]},
   {in: ["ph","ph"], out: ["H"], cumprob: [1]},
   {in: ["Wp","Wm"], out: ["H"], cumprob: [1]},
-  {in: ["Z","Z"], out: ["H"], cumprob: [1]}
+  {in: ["Z","Z"], out: ["H"], cumprob: [1]},
+  {in: ["H","H"], out: ["B"], cumprob: [1]}, // for fun
 ];
 var particlesAdd = [];
 var particlesRemove = [];
