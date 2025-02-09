@@ -336,7 +336,7 @@ var tlProgressbar = document.getElementById('timeline-progressbar');
 var tlAbstract = document.getElementById('timeline-abstract');
 var tlRegistration = document.getElementById('timeline-registration');
 var tlConference = document.getElementById('timeline-conference');
-if (now.getDate() < 7 || now.getMonth() <= 1) {
+if (now.getDate() < 7 && now.getMonth() < 1) {
   tlProgressbar.style.width = "10%";
   tlAbstract.style.border = "10px solid #9e9e9e";
   tlRegistration.style.border = "10px solid #9e9e9e";
