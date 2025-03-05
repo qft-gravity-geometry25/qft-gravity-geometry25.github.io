@@ -448,11 +448,34 @@ a{
     filter: blur(5px); /* Amount of blur */
     z-index: 0; /* Behind the text */
 }
-
 /* Text styling */
 .poster p {
     position: relative;
     z-index: 1; /* On top of the blurred background */
     margin: 0;
     padding: 20px;
+}
+/* Julian's well deserved crown */
+.crown {
+    position: relative; /* So the pseudo-element can absolutely position inside */
+}
+.crown::after {
+    content: "";
+    position: absolute;
+    bottom: 50%;
+    left: 25%;
+    width: 50%;
+    height: 50%;
+    background-image: url('/assets/crown.gif'); /* Your GIF */
+    background-size: cover;
+    background-position: center;
+    pointer-events: none; /* This makes sure clicks pass through to the links/images below */
+    opacity: 0.8; /* Adjust opacity if you want a semi-transparent overlay */
+    z-index: 10; /* Ensure it sits on top */
+}
+@media (min-width: 601px) {
+    .crown::after {
+        bottom: 50px; /* or tweak if you want it lower */
+        margin-top: 1em; /* Shift down slightly to only cover the image */
+    }
 }
