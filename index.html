@@ -30,6 +30,7 @@
     <a href="#about" class="w3-bar-item w3-button w3-padding-large">About</a>
     <a href="#speakers" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Speakers</a>
     <a href="#schedule" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Schedule</a>
+    <a href="#photo" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Photo</a>
     <a href="#registration" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Registration</a>
     <a href="#posters" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Posters</a>
     <a href="#access" class="w3-bar-item w3-button w3-padding-large w3-hide-small">Access</a>
@@ -41,6 +42,7 @@
 <div id="navDemo" class="w3-bar-block w3-black w3-hide w3-hide-large w3-hide-medium w3-top" style="margin-top:46px">
   <a href="#speakers" class="w3-bar-item w3-button w3-padding-large" onclick="navBarMobile()">Speakers</a>
   <a href="#schedule" class="w3-bar-item w3-button w3-padding-large" onclick="navBarMobile()">Schedule</a>
+  <a href="#photo" class="w3-bar-item w3-button w3-padding-large" onclick="navBarMobile()">Photo</a>
   <a href="#registration" class="w3-bar-item w3-button w3-padding-large" onclick="navBarMobile()">Registration</a>
   <a href="#posters" class="w3-bar-item w3-button w3-padding-large" onclick="navBarMobile()">Posters</a>
   <a href="#access" class="w3-bar-item w3-button w3-padding-large" onclick="navBarMobile()">Access</a>
@@ -156,13 +158,78 @@
     </div>
   </div>
 
+  <!-- Photo -->
+  <div class="w3-container w3-content w3-padding-64" style="max-width:800px" id="photo">
+    <h2 class="w3-wide w3-center">Group photo</h2>
+    <p class="w3-opacity w3-center"><i>Thanks to all the amazing attendees!</i></p>
+    <div class="w3-container w3-content w3-center" style="position: relative;">
+      <img id="group_photo" src="/assets/group_photo.JPG" class="w3-round w3-margin-bottom" alt="Group Photo" style="width:100%;">
+      <a href="https://youtu.be/NTs8r5qmWXk" id="group_photo_Elisa" style="
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        left: 0px;
+        top: 0px;
+      "></a>
+      <a href="https://youtu.be/8mIGzoQ5qPs" id="group_photo_Neil" style="
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        left: 0px;
+        top: 0px;
+      "></a>
+      <a href="https://youtu.be/RnBg0ueTT9Y" id="group_photo_Kymani" style="
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        left: 0px;
+        top: 0px;
+      "></a>
+      <a href="https://youtu.be/4eFtd43rS7c" id="group_photo_Guss" style="
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        left: 0px;
+        top: 0px;
+      "></a>
+      <a href="https://youtu.be/m_HQt8vdm4Y" id="group_photo_Dan" style="
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        left: 0px;
+        top: 0px;
+      "></a>
+      <a href="https://youtu.be/49a3Pa6so0A" id="group_photo_Joseph" style="
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        left: 0px;
+        top: 0px;
+      "></a>
+      <a href="https://youtu.be/Ii1JYWkBLHw" id="group_photo_James" style="
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        left: 0px;
+        top: 0px;
+      "></a>
+      <a href="https://youtu.be/Hen87l1M2rc" id="group_photo_Altay" style="
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        left: 0px;
+        top: 0px;
+      "></a>
+    </div>
+  </div>
+
   <!-- Registration -->
   <div class="w3-container w3-content w3-padding-64" style="max-width:800px" id="registration">
     <h2 class="w3-wide w3-center">Registration</h2>
     <p class="w3-opacity w3-center"><i>Places are limited and priority is given to SEPnet students.</i></p>
     <div class="w3-container w3-content w3-center">
       <p class="w3-justify">
-        <b>Registration is now open for all attendees.</b>
+        <b>Registration is now closed.</b>
       </p>
       <p class="w3-justify">
       To register and submit an abstract for a poster presentation or talk please email <a href="mailto:qft.gravity.geometry2025@gmail.com ">qft.gravity.geometry2025@gmail.com</a>. Abstract deadline <b>7 February 2025</b>.
@@ -402,6 +469,48 @@ function equalizeParagraphHeights() {
 window.addEventListener('DOMContentLoaded', equalizeParagraphHeights);
 // Run the function on window resize
 window.addEventListener('resize', equalizeParagraphHeights);
+
+const groupPhoto = document.getElementById('group_photo');
+const groupPhotoElisa = document.getElementById('group_photo_Elisa');
+const groupPhotoNeil = document.getElementById('group_photo_Neil');
+const groupPhotoKymani = document.getElementById('group_photo_Kymani');
+const groupPhotoGuss = document.getElementById('group_photo_Guss');
+const groupPhotoDan = document.getElementById('group_photo_Dan');
+const groupPhotoJoseph = document.getElementById('group_photo_Joseph');
+const groupPhotoJames = document.getElementById('group_photo_James');
+const groupPhotoAltay = document.getElementById('group_photo_Altay');
+
+function updateGroupPhotoHREF() {
+  const groupPhotoRect = groupPhoto.getBoundingClientRect();
+
+  groupPhotoElisa.style.left = `${groupPhotoRect.width * 0.73}px`;
+  groupPhotoElisa.style.top = `${groupPhotoRect.height * 0.44}px`;
+
+  groupPhotoNeil.style.left = `${groupPhotoRect.width * 0.59}px`;
+  groupPhotoNeil.style.top = `${groupPhotoRect.height * 0.42}px`;
+
+  groupPhotoKymani.style.left = `${groupPhotoRect.width * 0.66}px`;
+  groupPhotoKymani.style.top = `${groupPhotoRect.height * 0.44}px`;
+
+  groupPhotoGuss.style.left = `${groupPhotoRect.width * 0.815}px`;
+  groupPhotoGuss.style.top = `${groupPhotoRect.height * 0.36}px`;
+
+  groupPhotoDan.style.left = `${groupPhotoRect.width * 0.26}px`;
+  groupPhotoDan.style.top = `${groupPhotoRect.height * 0.37}px`;
+
+  groupPhotoJoseph.style.left = `${groupPhotoRect.width * 0.38}px`;
+  groupPhotoJoseph.style.top = `${groupPhotoRect.height * 0.37}px`;
+
+  groupPhotoJames.style.left = `${groupPhotoRect.width * 0.42}px`;
+  groupPhotoJames.style.top = `${groupPhotoRect.height * 0.36}px`;
+
+  groupPhotoAltay.style.left = `${groupPhotoRect.width * 0.51}px`;
+  groupPhotoAltay.style.top = `${groupPhotoRect.height * 0.41}px`;
+}
+
+updateGroupPhotoHREF();
+window.addEventListener('DOMContentLoaded', updateGroupPhotoHREF);
+window.addEventListener('resize', updateGroupPhotoHREF);
 </script>
 
 </body>
